@@ -1,0 +1,15 @@
+{
+	"key.category.autoshaftmine.main": "AutoShaftMine",
+	"key.autoshaftmine.toggle": "Start/Stop Shaft Mining",
+	"message.autoshaftmine.started": "Shaft mining started",
+	"message.autoshaftmine.stopped.manual": "Shaft mining stopped",
+	"message.autoshaftmine.stopped.lava": "Stopped: lava ahead!",
+	"message.autoshaftmine.stopped.fluid": "Stopped: fluid ahead",
+	"message.autoshaftmine.stopped.drop": "Stopped: dangerous drop ahead",
+	"message.autoshaftmine.stopped.damage_block": "Stopped: damaging block ahead",
+	"message.autoshaftmine.stopped.health_lost": "Stopped: you took damage",
+	"message.autoshaftmine.stopped.tool_breaking": "Stopped: tool is about to break",
+	"message.autoshaftmine.stopped.unbreakable": "Stopped: unbreakable block ahead",
+	"message.autoshaftmine.stopped.screen_opened": "Stopped: a screen was opened",
+	"message.autoshaftmine.stopped.world_left": "Stopped: left the world"
+}

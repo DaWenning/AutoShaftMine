@@ -1,0 +1,15 @@
+{
+	"key.category.autoshaftmine.main": "AutoShaftMine",
+	"key.autoshaftmine.toggle": "Schachtgraben starten/stoppen",
+	"message.autoshaftmine.started": "Schachtgraben gestartet",
+	"message.autoshaftmine.stopped.manual": "Schachtgraben gestoppt",
+	"message.autoshaftmine.stopped.lava": "Gestoppt: Lava voraus!",
+	"message.autoshaftmine.stopped.fluid": "Gestoppt: Flüssigkeit voraus",
+	"message.autoshaftmine.stopped.drop": "Gestoppt: gefährlicher Abgrund voraus",
+	"message.autoshaftmine.stopped.damage_block": "Gestoppt: schädlicher Block voraus",
+	"message.autoshaftmine.stopped.health_lost": "Gestoppt: Du hast Schaden genommen",
+	"message.autoshaftmine.stopped.tool_breaking": "Gestoppt: Werkzeug geht gleich kaputt",
+	"message.autoshaftmine.stopped.unbreakable": "Gestoppt: unzerstörbarer Block voraus",
+	"message.autoshaftmine.stopped.screen_opened": "Gestoppt: ein Menü wurde geöffnet",
+	"message.autoshaftmine.stopped.world_left": "Gestoppt: Welt verlassen"
+}
