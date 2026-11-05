@@ -11,5 +11,10 @@
 	"message.autoshaftmine.stopped.tool_breaking": "Stopped: tool is about to break",
 	"message.autoshaftmine.stopped.unbreakable": "Stopped: unbreakable block ahead",
 	"message.autoshaftmine.stopped.screen_opened": "Stopped: a screen was opened",
-	"message.autoshaftmine.stopped.world_left": "Stopped: left the world"
+	"message.autoshaftmine.stopped.world_left": "Stopped: left the world",
+	"config.autoshaftmine.title": "AutoShaftMine Settings",
+	"config.autoshaftmine.auto_fill_drops": "Auto-place blocks on drops: %s",
+	"config.autoshaftmine.mine_ores": "Mine ores: %s",
+	"config.autoshaftmine.backfill_ores": "Refill ore holes: %s",
+	"config.autoshaftmine.max_safe_drop": "Max. safe drop: %s blocks"
 }

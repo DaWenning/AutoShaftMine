@@ -1,5 +1,7 @@
 package com.recklessgreed.autoshaftmine.client;
 
+import com.recklessgreed.autoshaftmine.client.config.ModConfig;
+
 import java.util.Optional;
 
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -11,8 +13,6 @@ import net.minecraft.world.level.block.state.BlockState;
 
 /** Looks ahead of the player for anything that should interrupt the tunnel. */
 public final class HazardScanner {
-	/** Number of empty blocks below the next floor tile that counts as a dangerous drop. */
-	private static final int MAX_SAFE_DROP = 3;
 	/** How many blocks ahead lava is looked for. */
 	private static final int LAVA_LOOKAHEAD = 2;
 
@@ -71,7 +71,8 @@ public final class HazardScanner {
 	}
 
 	private static boolean isDangerousDrop(ClientLevel level, BlockPos ahead) {
-		for (int depth = 1; depth <= MAX_SAFE_DROP; depth++) {
+		int maxSafeDrop = ModConfig.get().safeDrop();
+		for (int depth = 1; depth <= maxSafeDrop; depth++) {
 			BlockPos below = ahead.below(depth);
 			if (!level.getBlockState(below).getCollisionShape(level, below).isEmpty()) {
 				return false;

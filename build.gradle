@@ -9,6 +9,7 @@ repositories {
 	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
 	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
 	// for more information about repositories.
+	maven { url = "https://maven.terraformersmc.com/releases/" }
 }
 
 loom {
@@ -29,6 +30,10 @@ dependencies {
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+	// ModMenu: compile-only, because no released version supports Minecraft 26.3 yet.
+	// Re-add localRuntime once a compatible version exists.
+	compileOnly "com.terraformersmc:modmenu:20.0.3"
 }
 
 processResources {

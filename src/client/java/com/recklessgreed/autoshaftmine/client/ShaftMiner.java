@@ -5,9 +5,12 @@ import java.util.Iterator;
 import java.util.Optional;
 import java.util.Set;
 
+import com.recklessgreed.autoshaftmine.client.config.ModConfig;
+
 import net.fabricmc.fabric.api.tag.convention.v2.ConventionalBlockTags;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -101,7 +104,8 @@ public final class ShaftMiner {
 			active = false;
 			return;
 		}
-		if (mc.gui.screen() != null) {
+		// The chat is the only screen that does not interrupt mining.
+		if (mc.gui.screen() != null && !(mc.gui.screen() instanceof ChatScreen)) {
 			stop(mc, StopReason.SCREEN_OPENED);
 			return;
 		}
@@ -120,7 +124,7 @@ public final class ShaftMiner {
 		BlockPos feet = player.blockPosition();
 		Optional<StopReason> hazard = HazardScanner.scan(mc.level, feet, direction);
 		if (hazard.isPresent()) {
-			if (hazard.get() == StopReason.DROP && fillAttempts < MAX_FILL_ATTEMPTS
+			if (hazard.get() == StopReason.DROP && ModConfig.get().autoFillDrops && fillAttempts < MAX_FILL_ATTEMPTS
 					&& tryFillDrop(mc, player, feet)) {
 				fillAttempts++;
 				mc.options.keyUp.setDown(false);
@@ -207,6 +211,11 @@ public final class ShaftMiner {
 	 * @return true while this phase is busy and the normal tunnelling must wait
 	 */
 	private boolean handleOres(Minecraft mc, LocalPlayer player, BlockPos feet) {
+		if (!ModConfig.get().mineOres) {
+			oreTarget = null;
+			holes.clear();
+			return false;
+		}
 		if (oreTarget != null) {
 			if (!isOre(mc.level.getBlockState(oreTarget))) {
 				holes.add(oreTarget);
@@ -224,7 +233,7 @@ public final class ShaftMiner {
 			return true;
 		}
 
-		return !holes.isEmpty() && backfill(mc, player, feet);
+		return !holes.isEmpty() && ModConfig.get().backfillOres && backfill(mc, player, feet);
 	}
 
 	/**
@@ -313,8 +322,20 @@ public final class ShaftMiner {
 		return inLine && (pos.getY() == feet.getY() || pos.getY() == feet.getY() + 1);
 	}
 
+	/** Explicit list, because the c:ores tag is missing when the server does not provide it. */
+	private static final java.util.Set<net.minecraft.world.level.block.Block> ORE_BLOCKS = java.util.Set.of(
+			Blocks.COAL_ORE, Blocks.DEEPSLATE_COAL_ORE,
+			Blocks.IRON_ORE, Blocks.DEEPSLATE_IRON_ORE,
+			Blocks.COPPER_ORE, Blocks.DEEPSLATE_COPPER_ORE,
+			Blocks.GOLD_ORE, Blocks.DEEPSLATE_GOLD_ORE, Blocks.NETHER_GOLD_ORE,
+			Blocks.REDSTONE_ORE, Blocks.DEEPSLATE_REDSTONE_ORE,
+			Blocks.LAPIS_ORE, Blocks.DEEPSLATE_LAPIS_ORE,
+			Blocks.DIAMOND_ORE, Blocks.DEEPSLATE_DIAMOND_ORE,
+			Blocks.EMERALD_ORE, Blocks.DEEPSLATE_EMERALD_ORE,
+			Blocks.NETHER_QUARTZ_ORE, Blocks.ANCIENT_DEBRIS);
+
 	private static boolean isOre(BlockState state) {
-		return state.is(ConventionalBlockTags.ORES) || state.is(Blocks.ANCIENT_DEBRIS);
+		return state.is(ConventionalBlockTags.ORES) || ORE_BLOCKS.contains(state.getBlock());
 	}
 
 	private void mineBlock(Minecraft mc, LocalPlayer player, BlockPos pos) {

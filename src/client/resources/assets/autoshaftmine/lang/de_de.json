@@ -11,5 +11,10 @@
 	"message.autoshaftmine.stopped.tool_breaking": "Gestoppt: Werkzeug geht gleich kaputt",
 	"message.autoshaftmine.stopped.unbreakable": "Gestoppt: unzerstörbarer Block voraus",
 	"message.autoshaftmine.stopped.screen_opened": "Gestoppt: ein Menü wurde geöffnet",
-	"message.autoshaftmine.stopped.world_left": "Gestoppt: Welt verlassen"
+	"message.autoshaftmine.stopped.world_left": "Gestoppt: Welt verlassen",
+	"config.autoshaftmine.title": "AutoShaftMine-Einstellungen",
+	"config.autoshaftmine.auto_fill_drops": "Blöcke an Abgründen setzen: %s",
+	"config.autoshaftmine.mine_ores": "Erze abbauen: %s",
+	"config.autoshaftmine.backfill_ores": "Erzlöcher auffüllen: %s",
+	"config.autoshaftmine.max_safe_drop": "Max. sichere Fallhöhe: %s Blöcke"
 }
