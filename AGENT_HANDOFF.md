@@ -15,10 +15,11 @@ Press a key (default **G**) and the player automatically digs a straight 1x2 tun
 | Item | Value |
 |---|---|
 | Minecraft | **26.3** (new year-based versioning; Mojang names, unobfuscated) |
-| Fabric Loader | 0.20.1 |
+| Fabric Loader | 0.19.5 (lowered from 0.20.1 in `03cbd16`; `fabric.mod.json` requires `>=0.19.5`) |
 | Fabric Loom | `net.fabricmc.fabric-loom` 1.19-SNAPSHOT |
 | Fabric API | 0.165.0+26.3 |
 | Java | **25** (`options.release = 25`) – JDK 25 required |
+| ModMenu | `com.terraformersmc:modmenu:20.0.3`, **`compileOnly`** (maven `https://maven.terraformersmc.com/releases/`) – see §3a |
 | Build | Gradle wrapper (`./gradlew build`), configuration cache on |
 | CI | `.github/workflows/build.yml` (Ubuntu, JDK 25 Microsoft, `./gradlew build`) |
 
@@ -34,21 +35,48 @@ Because MC 26.x APIs differ from older versions you may know (e.g. `player.sendO
 - `ShaftMiner` – the state machine (see §4).
 - `HazardScanner` – stateless look-ahead returning `Optional<StopReason>`.
 - `StopReason` – enum; each value maps to translation key `message.autoshaftmine.stopped.<key>`.
+- `config/` – settings + ModMenu integration (see §3a).
 - `mixin/ExampleClientMixin`, `main/.../mixin/ExampleMixin` – leftover template mixins (empty); mixin configs `autoshaftmine(.client).mixins.json`. Can be removed if unused.
 
-Resources: `src/client/resources/assets/autoshaftmine/lang/{en_us,de_de}.json` (all user-facing text, key binding name + overlay messages), `src/main/resources/fabric.mod.json`, `assets/autoshaftmine/icon.png`.
+Resources: `src/client/resources/assets/autoshaftmine/lang/{en_us,de_de}.json` (all user-facing text, key binding name, overlay messages, `config.autoshaftmine.*` settings labels), `src/main/resources/fabric.mod.json`, `assets/autoshaftmine/icon.png`.
+
+## 3a. ModMenu integration and settings (commit `03cbd16`)
+
+Package `com.recklessgreed.autoshaftmine.client.config`:
+
+- `ModMenuIntegration` implements `ModMenuApi`; `getModConfigScreenFactory()` returns `ConfigScreen::new`. Registered in `fabric.mod.json` under entrypoint key `"modmenu"`. The mod works without ModMenu installed (the entrypoint is only loaded by ModMenu).
+- `ConfigScreen` – plain vanilla `Screen` (no Cloth Config / YACL dependency). Four buttons in a column, centered, starting at `height / 4`, each 200x20, plus a Done button. Boolean options are click-to-toggle buttons labelled via `Component.translatable(key, OPTION_ON/OFF)`; the drop button cycles 1..10 and wraps. `onClose()` calls `ModConfig.get().save()` and returns to the parent screen (`minecraft.setScreenAndShow(parent)`). Settings are saved only on close, not on every click.
+- `ModConfig` – Gson POJO (pretty-printed), lazily loaded singleton via `ModConfig.get()`, stored at `<fabric config dir>/autoshaftmine.json`. Broken/unreadable file → silently falls back to defaults; write errors are swallowed.
+
+| Field | Default | Effect | Read in |
+|---|---|---|---|
+| `autoFillDrops` | `true` | Place filler block on a `DROP` hazard instead of stopping immediately | `ShaftMiner.tick` (hazard branch) |
+| `mineOres` | `true` | Ore-vein mining; when off, `oreTarget` is nulled and `holes` cleared | `ShaftMiner.handleOres` |
+| `backfillOres` | `true` | Refill mined-out ore cells | `ShaftMiner.handleOres` |
+| `maxSafeDrop` | **`1`** | Empty blocks below the next floor tile still treated as safe; read through `safeDrop()` which clamps to 1..`MAX_SAFE_DROP_LIMIT` (10) to survive hand-edited files | `HazardScanner.isDangerousDrop` |
+
+Lang keys (both `en_us` and `de_de`, keep in sync): `config.autoshaftmine.title`, `.auto_fill_drops`, `.mine_ores`, `.backfill_ores`, `.max_safe_drop` (the toggles take `%s` for On/Off, the drop label takes the number).
+
+Build/dependency caveats:
+- ModMenu is **compile-only** because no released ModMenu supports Minecraft 26.3 yet (comment in `build.gradle`). Consequence: `runClient` does **not** have ModMenu, so the config screen cannot be opened there. Once a compatible ModMenu exists, add `localRuntime "com.terraformersmc:modmenu:<version>"`. Until then edit `config/autoshaftmine.json` by hand to test settings, or temporarily open `ConfigScreen` from a debug hook.
+- `gradle.properties`: `loader_version` lowered 0.20.1 → 0.19.5 (the commit says "after testing in Prod", presumably to match the loader of the owner's real installation).
+
+Related behavior changes in the same commit (not ModMenu, but easy to miss):
+- **`MAX_SAFE_DROP` constant (was 3) removed**; the configurable default is now **1**, so out of the box the miner treats a 2-block-deep hole as dangerous earlier than before. Raise it in the screen if the old behavior is wanted.
+- `ChatScreen` no longer triggers `SCREEN_OPENED`; every other screen still stops the miner (this is also why opening the ModMenu config screen mid-run stops mining).
+- `isOre` now also matches an explicit `ORE_BLOCKS` set (vanilla ores incl. deepslate variants, nether gold/quartz, ancient debris) because the `c:ores` tag is absent when the server doesn't supply it.
 
 ## 4. Behavior (current state, per tick when active)
 
-1. **Abort checks** → `stop(...)`: screen opened (`SCREEN_OPENED`), health dropped since last tick (`HEALTH_LOST`), tool has ≤ 2 durability left (`TOOL_BREAKING`; only for damageable items), player gone (`WORLD_LEFT`).
+1. **Abort checks** → `stop(...)`: any screen except `ChatScreen` opened (`SCREEN_OPENED`), health dropped since last tick (`HEALTH_LOST`), tool has ≤ 2 durability left (`TOOL_BREAKING`; only for damageable items), player gone (`WORLD_LEFT`).
 2. **Hazard scan** (`HazardScanner.scan(level, feet, dir)`):
    - Lava in a 3 wide x 4 high box (heights -1..+2) from the player out 2 blocks ahead → `LAVA`
    - Any fluid at ahead / ahead+1 → `FLUID`
    - Magma block, fire, soul fire, cactus at ahead, ahead+1, ahead-1 → `DAMAGE_BLOCK`
-   - Floor ahead has no collision for 3 consecutive blocks down (`MAX_SAFE_DROP = 3`) → `DROP`
-3. **Drop handling**: on `DROP`, up to `MAX_FILL_ATTEMPTS = 3` times, place a filler block (cobble/stone-type/deepslate/dirt/netherrack from the **hotbar**) on the floor tile ahead by clicking the side face of the block the player stands on; previous hotbar slot is restored. If it cannot be filled, stop with `DROP`.
+   - Floor ahead has no collision for `ModConfig.safeDrop()` consecutive blocks down (default 1, max 10) → `DROP`
+3. **Drop handling**: on `DROP` (only if `autoFillDrops` is enabled), up to `MAX_FILL_ATTEMPTS = 3` times, place a filler block (cobble/stone-type/deepslate/dirt/netherrack from the **hotbar**) on the floor tile ahead by clicking the side face of the block the player stands on; previous hotbar slot is restored. If it cannot be filled, stop with `DROP`.
 4. **Ore handling** (`handleOres`, takes priority over tunnelling, walking is paused while busy):
-   - Ore = `c:ores` convention tag (`ConventionalBlockTags.ORES`) or ancient debris.
+   - Ore = `c:ores` convention tag (`ConventionalBlockTags.ORES`) or a block in the explicit `ORE_BLOCKS` set (only when `mineOres` is on; backfill only when `backfillOres` is on).
    - Search cubes (3x3 wide, reach ≤ 4 blocks): around the player (rows -1..+2 relative to feet), around an ore in the floor under the player (never mines the block the player stands on), and around **every already mined ore position** → veins are followed ore to ore.
    - Mined-out ore cells go into `holes`. When no ore is left, `backfill` places filler blocks into the holes (placing against any solid neighbor face), skipping shaft cells (the 1x2 column in the tunnel line) and non-air cells. Backfill is capped at `MAX_BACKFILL_TICKS = 60`, and abandoned if no filler is in the hotbar.
 5. **Tunnelling**: face the direction fixed at start (`player.getDirection()`), mine the head-level block ahead first (so gravel/sand above can't pile in), then the foot-level block; if both are air, hold `keyUp` to walk. Unbreakable block (destroy speed < 0) → `UNBREAKABLE`.
@@ -62,6 +90,7 @@ Design notes: only the main-hand tool is used; no tool switching, no inventory m
 2. `a250f8f` **Fill dangerous drops and mine ore veins with backfill** – added ore vein mining (3x3x3 cubes, chaining along the vein via `holes`) and the backfill phase to refill mined-out ore cells; refactored block placement into `placeAgainst`. (+222 lines in `ShaftMiner`)
 
 Manual testing so far (from `run/` logs and command history, not automated): a creative-flat/“New World” test world, switched to Survival, `/effect give <player> haste infinite 3|10 true` to speed up digging and `night_vision` for visibility. The game ran and stopped cleanly; **no automated tests exist**, and I have no record of the ore/backfill behavior being confirmed in detail in-game – verify it before building on it.
+3. `03cbd16` **Many Changes after testing in Prod** (authored by recklessGreed) – ModMenu integration + `ModConfig`/`ConfigScreen` (§3a), explicit ore list, chat screen no longer interrupts, Fabric Loader lowered to 0.19.5. Net +184/-11 lines across 10 files.
 
 ## 6. Conventions (from the owner's global rules)
 
@@ -75,7 +104,10 @@ Manual testing so far (from `run/` logs and command history, not automated): a c
 - Verify ore chaining and backfill in-game (veins touching the shaft, ore under the feet, no filler in hotbar).
 - `findFillerSlot` only checks the hotbar; consider inventory pull-in or a "no filler" stop reason/message.
 - Falling blocks (gravel/sand) in the head-level row are handled only by mining order, not by detection.
-- Thresholds are hard-coded constants (durability, drop depth, lava lookahead); a config screen/file could expose them.
+- Only drop depth and the three feature toggles are configurable; durability threshold (2), lava lookahead, `MAX_FILL_ATTEMPTS`, `MAX_BACKFILL_TICKS` are still constants and could be added to `ModConfig`/`ConfigScreen` (add lang keys in both files).
+- `ConfigScreen` saves only on `onClose()`; pressing Esc routes through `onClose()` too, but a crash loses changes. `ModConfig.load/save` swallow errors silently – consider logging.
+- Config screen is untested in-game here (ModMenu is not on the dev runtime classpath); re-add `localRuntime` for ModMenu when a 26.3-compatible release appears.
+- Default `maxSafeDrop = 1` differs from the previous hard-coded 3 – confirm that is intended.
 - Remove the unused `Example*Mixin` classes and their mixin config entries, and replace the "Hello Fabric world!" log.
 - Add tests (e.g. pure logic of `HazardScanner` via GameTest) and a README.
 
