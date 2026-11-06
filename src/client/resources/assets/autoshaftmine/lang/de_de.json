@@ -16,5 +16,8 @@
 	"config.autoshaftmine.auto_fill_drops": "Blöcke an Abgründen setzen: %s",
 	"config.autoshaftmine.mine_ores": "Erze abbauen: %s",
 	"config.autoshaftmine.backfill_ores": "Erzlöcher auffüllen: %s",
-	"config.autoshaftmine.max_safe_drop": "Max. sichere Fallhöhe: %s Blöcke"
+	"config.autoshaftmine.max_safe_drop": "Max. sichere Fallhöhe: %s Blöcke",
+	"config.autoshaftmine.stop_on_health_loss": "Bei Schaden stoppen: %s",
+	"config.autoshaftmine.min_tool_durability": "Stopp bei Werkzeug-Haltbarkeit: %s",
+	"config.autoshaftmine.lava_lookahead": "Lava-Vorausschau: %s Blöcke"
 }

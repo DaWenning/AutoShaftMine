@@ -31,9 +31,6 @@ import net.minecraft.world.level.block.state.BlockState;
  * Runs entirely on the client by driving the same inputs a human would use.
  */
 public final class ShaftMiner {
-	/** Stop when the tool has this many uses (or fewer) left. */
-	private static final int MIN_REMAINING_DURABILITY = 2;
-
 	/** How many consecutive fill attempts may fail to remove the drop before giving up. */
 	private static final int MAX_FILL_ATTEMPTS = 3;
 
@@ -110,7 +107,7 @@ public final class ShaftMiner {
 			return;
 		}
 
-		if (player.getHealth() < lastHealth) {
+		if (ModConfig.get().stopOnHealthLoss && player.getHealth() < lastHealth) {
 			stop(mc, StopReason.HEALTH_LOST);
 			return;
 		}
@@ -365,6 +362,6 @@ public final class ShaftMiner {
 
 	private static boolean isToolAlmostBroken(ItemStack stack) {
 		return stack.isDamageableItem()
-				&& stack.getMaxDamage() - stack.getDamageValue() <= MIN_REMAINING_DURABILITY;
+				&& stack.getMaxDamage() - stack.getDamageValue() <= ModConfig.get().minToolDurability();
 	}
 }

@@ -24,11 +24,32 @@ public final class ModConfig {
 	/** Number of empty blocks below the next floor tile that still counts as safe (1-10). */
 	public int maxSafeDrop = 1;
 
+	/** Stop as soon as the player loses health. */
+	public boolean stopOnHealthLoss = true;
+	/** Stop when the tool has this many uses (or fewer) left. */
+	public int minToolDurability = 2;
+	/** How many blocks ahead lava is looked for (1-5). */
+	public int lavaLookahead = 2;
+
+	public static final int MAX_SAFE_DROP_LIMIT = 10;
+	public static final int MAX_LAVA_LOOKAHEAD_LIMIT = 5;
+	/** Selectable durability thresholds, the settings screen cycles through them. */
+	public static final int[] DURABILITY_STEPS = {2, 5, 10, 25, 50, 100};
+
 	/** Clamped value, protects against hand-edited config files. */
 	public int safeDrop() {
 		return Math.max(1, Math.min(MAX_SAFE_DROP_LIMIT, maxSafeDrop));
 	}
-	public static final int MAX_SAFE_DROP_LIMIT = 10;
+
+	/** Clamped value, protects against hand-edited config files. */
+	public int lavaLookahead() {
+		return Math.max(1, Math.min(MAX_LAVA_LOOKAHEAD_LIMIT, lavaLookahead));
+	}
+
+	/** Never negative, protects against hand-edited config files. */
+	public int minToolDurability() {
+		return Math.max(0, minToolDurability);
+	}
 
 	public static ModConfig get() {
 		if (instance == null) {

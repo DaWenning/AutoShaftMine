@@ -16,5 +16,8 @@
 	"config.autoshaftmine.auto_fill_drops": "Auto-place blocks on drops: %s",
 	"config.autoshaftmine.mine_ores": "Mine ores: %s",
 	"config.autoshaftmine.backfill_ores": "Refill ore holes: %s",
-	"config.autoshaftmine.max_safe_drop": "Max. safe drop: %s blocks"
+	"config.autoshaftmine.max_safe_drop": "Max. safe drop: %s blocks",
+	"config.autoshaftmine.stop_on_health_loss": "Stop on damage: %s",
+	"config.autoshaftmine.min_tool_durability": "Stop at tool durability: %s",
+	"config.autoshaftmine.lava_lookahead": "Lava lookahead: %s blocks"
 }

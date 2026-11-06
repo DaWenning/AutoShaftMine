@@ -13,9 +13,6 @@ import net.minecraft.world.level.block.state.BlockState;
 
 /** Looks ahead of the player for anything that should interrupt the tunnel. */
 public final class HazardScanner {
-	/** How many blocks ahead lava is looked for. */
-	private static final int LAVA_LOOKAHEAD = 2;
-
 	private HazardScanner() {
 	}
 
@@ -50,7 +47,7 @@ public final class HazardScanner {
 	/** Lava anywhere in a 3-wide, 4-high box that starts at the player and extends ahead. */
 	private static boolean hasLavaNearby(ClientLevel level, BlockPos feet, Direction dir) {
 		Direction side = dir.getClockWise();
-		for (int forward = 0; forward <= LAVA_LOOKAHEAD; forward++) {
+		for (int forward = 0; forward <= ModConfig.get().lavaLookahead(); forward++) {
 			for (int lateral = -1; lateral <= 1; lateral++) {
 				for (int height = -1; height <= 2; height++) {
 					BlockPos pos = feet.relative(dir, forward).relative(side, lateral).above(height);

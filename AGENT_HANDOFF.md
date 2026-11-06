@@ -45,7 +45,7 @@ Resources: `src/client/resources/assets/autoshaftmine/lang/{en_us,de_de}.json` (
 Package `com.recklessgreed.autoshaftmine.client.config`:
 
 - `ModMenuIntegration` implements `ModMenuApi`; `getModConfigScreenFactory()` returns `ConfigScreen::new`. Registered in `fabric.mod.json` under entrypoint key `"modmenu"`. The mod works without ModMenu installed (the entrypoint is only loaded by ModMenu).
-- `ConfigScreen` – plain vanilla `Screen` (no Cloth Config / YACL dependency). Four buttons in a column, centered, starting at `height / 4`, each 200x20, plus a Done button. Boolean options are click-to-toggle buttons labelled via `Component.translatable(key, OPTION_ON/OFF)`; the drop button cycles 1..10 and wraps. `onClose()` calls `ModConfig.get().save()` and returns to the parent screen (`minecraft.setScreenAndShow(parent)`). Settings are saved only on close, not on every click.
+- `ConfigScreen` – plain vanilla `Screen` (no Cloth Config / YACL dependency). Seven buttons in a column (24px spacing; the Done button sits at `y+180`, which may fall off-screen at very small GUI heights), centered, starting at `height / 4`, each 200x20, plus a Done button. Boolean options are click-to-toggle buttons labelled via `Component.translatable(key, OPTION_ON/OFF)`; the drop button cycles 1..10 and wraps. `onClose()` calls `ModConfig.get().save()` and returns to the parent screen (`minecraft.setScreenAndShow(parent)`). Settings are saved only on close, not on every click.
 - `ModConfig` – Gson POJO (pretty-printed), lazily loaded singleton via `ModConfig.get()`, stored at `<fabric config dir>/autoshaftmine.json`. Broken/unreadable file → silently falls back to defaults; write errors are swallowed.
 
 | Field | Default | Effect | Read in |
@@ -54,8 +54,11 @@ Package `com.recklessgreed.autoshaftmine.client.config`:
 | `mineOres` | `true` | Ore-vein mining; when off, `oreTarget` is nulled and `holes` cleared | `ShaftMiner.handleOres` |
 | `backfillOres` | `true` | Refill mined-out ore cells | `ShaftMiner.handleOres` |
 | `maxSafeDrop` | **`1`** | Empty blocks below the next floor tile still treated as safe; read through `safeDrop()` which clamps to 1..`MAX_SAFE_DROP_LIMIT` (10) to survive hand-edited files | `HazardScanner.isDangerousDrop` |
+| `stopOnHealthLoss` | `true` | Stop with `HEALTH_LOST` when health drops | `ShaftMiner.tick` |
+| `minToolDurability` | `2` | Stop (`TOOL_BREAKING`) at this many remaining uses; screen cycles 2/5/10/25/50/100 (`DURABILITY_STEPS`) | `ShaftMiner.isToolAlmostBroken` |
+| `lavaLookahead` | `2` | Blocks ahead scanned for lava; `lavaLookahead()` clamps to 1..5 | `HazardScanner.hasLavaNearby` |
 
-Lang keys (both `en_us` and `de_de`, keep in sync): `config.autoshaftmine.title`, `.auto_fill_drops`, `.mine_ores`, `.backfill_ores`, `.max_safe_drop` (the toggles take `%s` for On/Off, the drop label takes the number).
+Lang keys (both `en_us` and `de_de`, keep in sync): `config.autoshaftmine.title`, `.auto_fill_drops`, `.mine_ores`, `.backfill_ores`, `.max_safe_drop`, `.stop_on_health_loss`, `.min_tool_durability`, `.lava_lookahead` (the toggles take `%s` for On/Off, the drop label takes the number).
 
 Build/dependency caveats:
 - ModMenu is **compile-only** because no released ModMenu supports Minecraft 26.3 yet (comment in `build.gradle`). Consequence: `runClient` does **not** have ModMenu, so the config screen cannot be opened there. Once a compatible ModMenu exists, add `localRuntime "com.terraformersmc:modmenu:<version>"`. Until then edit `config/autoshaftmine.json` by hand to test settings, or temporarily open `ConfigScreen` from a debug hook.
@@ -104,7 +107,7 @@ Manual testing so far (from `run/` logs and command history, not automated): a c
 - Verify ore chaining and backfill in-game (veins touching the shaft, ore under the feet, no filler in hotbar).
 - `findFillerSlot` only checks the hotbar; consider inventory pull-in or a "no filler" stop reason/message.
 - Falling blocks (gravel/sand) in the head-level row are handled only by mining order, not by detection.
-- Only drop depth and the three feature toggles are configurable; durability threshold (2), lava lookahead, `MAX_FILL_ATTEMPTS`, `MAX_BACKFILL_TICKS` are still constants and could be added to `ModConfig`/`ConfigScreen` (add lang keys in both files).
+- Configurable: drop depth, feature toggles, damage stop, durability threshold, lava lookahead. Still constants: `MAX_FILL_ATTEMPTS`, `MAX_BACKFILL_TICKS` are still constants and could be added to `ModConfig`/`ConfigScreen` (add lang keys in both files).
 - `ConfigScreen` saves only on `onClose()`; pressing Esc routes through `onClose()` too, but a crash loses changes. `ModConfig.load/save` swallow errors silently – consider logging.
 - Config screen is untested in-game here (ModMenu is not on the dev runtime classpath); re-add `localRuntime` for ModMenu when a 26.3-compatible release appears.
 - Default `maxSafeDrop = 1` differs from the previous hard-coded 3 – confirm that is intended.

@@ -32,8 +32,20 @@ public class ConfigScreen extends Screen {
 			b.setMessage(dropLabel(config.maxSafeDrop));
 		}).bounds(x, y + 72, 200, 20).build());
 
+		addToggle(x, y + 96, "config.autoshaftmine.stop_on_health_loss", () -> config.stopOnHealthLoss, v -> config.stopOnHealthLoss = v);
+
+		addRenderableWidget(Button.builder(durabilityLabel(config.minToolDurability()), b -> {
+			config.minToolDurability = nextDurability(config.minToolDurability());
+			b.setMessage(durabilityLabel(config.minToolDurability));
+		}).bounds(x, y + 120, 200, 20).build());
+
+		addRenderableWidget(Button.builder(lavaLabel(config.lavaLookahead()), b -> {
+			config.lavaLookahead = config.lavaLookahead() % ModConfig.MAX_LAVA_LOOKAHEAD_LIMIT + 1;
+			b.setMessage(lavaLabel(config.lavaLookahead));
+		}).bounds(x, y + 144, 200, 20).build());
+
 		addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, b -> onClose())
-				.bounds(x, y + 120, 200, 20).build());
+				.bounds(x, y + 180, 200, 20).build());
 	}
 
 	private void addToggle(int x, int y, String key, Supplier<Boolean> getter, Consumer<Boolean> setter) {
@@ -50,6 +62,24 @@ public class ConfigScreen extends Screen {
 
 	private static Component dropLabel(int value) {
 		return Component.translatable("config.autoshaftmine.max_safe_drop", value);
+	}
+
+	private static Component durabilityLabel(int value) {
+		return Component.translatable("config.autoshaftmine.min_tool_durability", value);
+	}
+
+	private static Component lavaLabel(int value) {
+		return Component.translatable("config.autoshaftmine.lava_lookahead", value);
+	}
+
+	/** Next larger step, wrapping to the smallest one. */
+	private static int nextDurability(int current) {
+		for (int step : ModConfig.DURABILITY_STEPS) {
+			if (step > current) {
+				return step;
+			}
+		}
+		return ModConfig.DURABILITY_STEPS[0];
 	}
 
 	@Override
