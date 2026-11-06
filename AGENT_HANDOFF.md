@@ -53,18 +53,21 @@ Package `com.recklessgreed.autoshaftmine.client.config`:
 |---|---|---|---|
 | `autoFillDrops` | `true` | Place filler block on a `DROP` hazard instead of stopping immediately | `ShaftMiner.tick` (hazard branch) |
 | `mineOres` | `true` | Ore-vein mining; when off, `oreTarget` is nulled and `holes` cleared | `ShaftMiner.handleOres` |
+| `mineOresBelow` | `true` | Also mine ores up to `ORE_DEPTH_BELOW` (2) rows below the feet, i.e. below the tunnel floor; they are refilled by the normal backfill. The block directly under the player is still never mined, and ores touching a fluid below feet level are skipped | `ShaftMiner.findOre/findOreInCube` |
+| `followVeins` | `true` | Ore excursion, see §4b | `ShaftMiner.handleOres/planExcursion` |
 | `backfillOres` | `true` | Refill mined-out ore cells | `ShaftMiner.handleOres` |
 | `maxSafeDrop` | **`1`** | Empty blocks below the next floor tile still treated as safe; read through `safeDrop()` which clamps to 1..`MAX_SAFE_DROP_LIMIT` (10) to survive hand-edited files | `HazardScanner.isDangerousDrop` |
 | `advancedMode` | `true` | Branch pattern, see §4a (read once at run start) | `ShaftMiner.start` |
 | `smoothMovement` | `true` | Humanlike camera (see `LookController`), `false` = old instant yaw snap | `LookController` |
+| `forwardLength` | `3` | Forward steps before each branch pair, 1-7; `forwardLength()` clamps; read once at run start | `ShaftMiner.start/updateSegment` |
 | `branchLength` | `3` | Length of each side branch (and its return), 1-7; `branchLength()` clamps; read once at run start | `ShaftMiner.start/updateSegment` |
 | `stopOnHealthLoss` | `true` | Stop with `HEALTH_LOST` when health drops | `ShaftMiner.tick` |
 | `minToolDurability` | `2` | Stop (`TOOL_BREAKING`) at this many remaining uses; screen cycles 2/5/10/25/50/100 (`DURABILITY_STEPS`) | `ShaftMiner.isToolAlmostBroken` |
 | `lavaLookahead` | `2` | Blocks ahead scanned for lava; `lavaLookahead()` clamps to 1..5 | `HazardScanner.hasLavaNearby` |
 
-Lang keys (both `en_us` and `de_de`, keep in sync): `config.autoshaftmine.title`, `.auto_fill_drops`, `.mine_ores`, `.backfill_ores`, `.advanced_mode`, `.branch_length`, `.smooth_movement`, `.max_safe_drop`, `.stop_on_health_loss`, `.min_tool_durability`, `.lava_lookahead` (the toggles take `%s` for On/Off, the drop label takes the number).
+Lang keys (both `en_us` and `de_de`, keep in sync): `config.autoshaftmine.title`, `.auto_fill_drops`, `.mine_ores`, `.mine_ores_below`, `.follow_veins`, `.backfill_ores`, `.advanced_mode`, `.forward_length`, `.branch_length`, `.smooth_movement`, `.max_safe_drop`, `.stop_on_health_loss`, `.min_tool_durability`, `.lava_lookahead` (the toggles take `%s` for On/Off, the drop label takes the number).
 
-Client commands (`ConfigCommand`, registered in `AutoShaftMineClient.onInitializeClient` via Fabric `ClientCommandRegistrationCallback`; works without ModMenu): `/autoshaftmine` or `/autoshaftmine list` shows all values, `/autoshaftmine set <option> <value>` changes one and saves immediately, `/autoshaftmine reset` restores defaults; `/asm` is an alias. Options: `advanced_mode`, `smooth_movement`, `auto_fill_drops`, `mine_ores`, `backfill_ores`, `stop_on_health_loss` (true/false) and `max_safe_drop` 1-10, `min_tool_durability` 0-1000, `lava_lookahead` 1-5, `branch_length` 1-7. New settings must be added to `ConfigCommand.build()` (and `ModConfig.resetToDefaults()`) as well as the screen. Command feedback keys: `command.autoshaftmine.{list,set,reset}`.
+Client commands (`ConfigCommand`, registered in `AutoShaftMineClient.onInitializeClient` via Fabric `ClientCommandRegistrationCallback`; works without ModMenu): `/autoshaftmine` or `/autoshaftmine list` shows all values, `/autoshaftmine set <option> <value>` changes one and saves immediately, `/autoshaftmine reset` restores defaults; `/asm` is an alias. Options: `advanced_mode`, `smooth_movement`, `auto_fill_drops`, `mine_ores`, `mine_ores_below`, `follow_veins`, `backfill_ores`, `stop_on_health_loss` (true/false) and `max_safe_drop` 1-10, `min_tool_durability` 0-1000, `lava_lookahead` 1-5, `forward_length` 1-7, `branch_length` 1-7. New settings must be added to `ConfigCommand.build()` (and `ModConfig.resetToDefaults()`) as well as the screen. Command feedback keys: `command.autoshaftmine.{list,set,reset}`.
 
 Build/dependency caveats:
 - ModMenu is **compile-only** because no released ModMenu supports Minecraft 26.3 yet (comment in `build.gradle`). Consequence: `runClient` does **not** have ModMenu, so the config screen cannot be opened there. Once a compatible ModMenu exists, add `localRuntime "com.terraformersmc:modmenu:<version>"`. Until then edit `config/autoshaftmine.json` by hand to test settings, or temporarily open `ConfigScreen` from a debug hook.
@@ -95,13 +98,21 @@ Design notes: only the main-hand tool is used; no tool switching, no inventory m
 
 ## 4a. Advanced mode (`ModConfig.advancedMode`)
 
-Pattern `PATTERN` in `ShaftMiner` (relative to the facing at start), repeated forever: **2 forward → N left → N back to the right → N right → N back to the left** (N = `branchLength`, default 3, `Segment.BRANCH` placeholder in `PATTERN`). Interpretation of the owner's request ("2 forward, 3 left, 3 right") as classic branch mining with return to the main line; change the `PATTERN` list if a different shape was meant (e.g. left 3, then right 6).
+Pattern `PATTERN` in `ShaftMiner` (relative to the facing at start), repeated forever: **F forward → N left → N back to the right → N right → N back to the left** (F = `forwardLength`, N = `branchLength`, both default 3, 1-7; `PATTERN` is a `List<Turn>`, the length is picked by turn type in `updateSegment`). Interpretation of the owner's request ("2 forward, 3 left, 3 right") as classic branch mining with return to the main line; change the `PATTERN` list if a different shape was meant (e.g. left 3, then right 6).
 
 How it works: `direction` is now the *current segment's* direction (`mainDirection` stays fixed). `updateSegment` counts blocks travelled along the segment axis from `segmentStart`; at the end block the player keeps walking until past the block centre (`centering`, skips mining) and then the next segment starts with the new `direction`. Return segments walk through the already mined tunnel (hazard scan and ore handling still run). `tunnelCells` collects every visited feet/head cell and `isShaftCell` treats them as shaft, so backfill never closes the way back.
 
 Centering: walking alone overshoots the block middle, so the player ended up off-centre after returning into the main line. Now the player is placed on the block middle at run start, and at every segment end the along-axis coordinate is snapped to the block centre (`player.setPos`, `CENTER_TOLERANCE` = 0.1) before the turn; this keeps the lateral position of the next segment centred. The snap now sets both horizontal coordinates to the block middle **and zeroes the horizontal velocity**: leftover momentum made the player slide ~0.2 blocks into the side opening after the turn (left return → forward) and then bump into the wall of the 1-wide corridor.
 
 **Untested in-game** – check corner turns (player lateral offset vs. 1-wide corridor), branches with gravel, and ore backfill near branch junctions.
+
+## 4b. Ore excursions (`followVeins`)
+
+When no ore is in reach (4 blocks from the eye) but ores next to mined-out cells (`holes`) or unfilled holes remain, `handleOres` calls `planExcursion`: a BFS (`findPath`, range `EXCURSION_RANGE` = 12 cells) over **walk cells** (cells the player has stood in: `tunnelCells` is now tracked in every mode, feet + head must be air) looks for a cell from which a target is in reach. The first stop stores `returnCell` and `savedDirection`; `followPath` then walks the path (direction per step, `LookController` turns, snap to cell middle at each corner like in `updateSegment`). At each stop the normal ore mining and backfill run again; when nothing is left, `planReturn` walks back to `returnCell` and `finishExcursion` restores the direction. While an excursion runs, `updateSegment` is paused. Safety: `MAX_EXCURSION_TICKS` (900) or a broken path stops the run with `StopReason.STUCK`.
+
+`backfill` now only fills holes in reach and keeps the others in `holes` so a later stop can fill them (it used to give up on them). Without `followVeins` or without a path, leftover holes are cleared as before.
+
+Limits: the walk only uses already visited tunnel cells (never digs a new path), flat (same y), and **is untested in-game**.
 
 ## 5. History of work (git)
 

@@ -19,6 +19,10 @@ public final class ModConfig {
 	public boolean autoFillDrops = true;
 	/** Mine ores next to the tunnel. */
 	public boolean mineOres = true;
+	/** Also mine ores below the tunnel floor (the holes are refilled like all ore holes). */
+	public boolean mineOresBelow = true;
+	/** Walk through the tunnel to ores and holes out of reach, then return to the previous position. */
+	public boolean followVeins = true;
 	/** Refill the holes left behind by mined ores. */
 	public boolean backfillOres = true;
 	/** Number of empty blocks below the next floor tile that still counts as safe (1-10). */
@@ -28,6 +32,8 @@ public final class ModConfig {
 	public boolean advancedMode = true;
 	/** Eased camera turns, pitch that follows the mined block and short reaction pauses. */
 	public boolean smoothMovement = true;
+	/** Forward steps between two pairs of side branches in advanced mode (1-7). */
+	public int forwardLength = 3;
 	/** Length of the side branches in advanced mode (1-7). */
 	public int branchLength = 3;
 	/** Stop as soon as the player loses health. */
@@ -40,6 +46,7 @@ public final class ModConfig {
 	public static final int MAX_SAFE_DROP_LIMIT = 10;
 	public static final int MAX_LAVA_LOOKAHEAD_LIMIT = 5;
 	public static final int MAX_BRANCH_LENGTH_LIMIT = 7;
+	public static final int MAX_FORWARD_LENGTH_LIMIT = 7;
 	/** Selectable durability thresholds, the settings screen cycles through them. */
 	public static final int[] DURABILITY_STEPS = {2, 5, 10, 25, 50, 100};
 
@@ -56,6 +63,11 @@ public final class ModConfig {
 	/** Clamped value, protects against hand-edited config files. */
 	public int branchLength() {
 		return Math.max(1, Math.min(MAX_BRANCH_LENGTH_LIMIT, branchLength));
+	}
+
+	/** Clamped value, protects against hand-edited config files. */
+	public int forwardLength() {
+		return Math.max(1, Math.min(MAX_FORWARD_LENGTH_LIMIT, forwardLength));
 	}
 
 	/** Never negative, protects against hand-edited config files. */
@@ -91,11 +103,14 @@ public final class ModConfig {
 		autoFillDrops = defaults.autoFillDrops;
 		mineOres = defaults.mineOres;
 		backfillOres = defaults.backfillOres;
+		followVeins = defaults.followVeins;
+		mineOresBelow = defaults.mineOresBelow;
 		maxSafeDrop = defaults.maxSafeDrop;
 		stopOnHealthLoss = defaults.stopOnHealthLoss;
 		minToolDurability = defaults.minToolDurability;
 		lavaLookahead = defaults.lavaLookahead;
 		branchLength = defaults.branchLength;
+		forwardLength = defaults.forwardLength;
 		smoothMovement = defaults.smoothMovement;
 	}
 

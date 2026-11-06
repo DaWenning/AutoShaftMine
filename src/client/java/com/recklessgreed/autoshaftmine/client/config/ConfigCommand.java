@@ -38,11 +38,14 @@ public final class ConfigCommand {
 		addBool(set, "advanced_mode", c -> c.advancedMode, (c, v) -> c.advancedMode = v);
 		addBool(set, "auto_fill_drops", c -> c.autoFillDrops, (c, v) -> c.autoFillDrops = v);
 		addBool(set, "mine_ores", c -> c.mineOres, (c, v) -> c.mineOres = v);
+		addBool(set, "mine_ores_below", c -> c.mineOresBelow, (c, v) -> c.mineOresBelow = v);
+		addBool(set, "follow_veins", c -> c.followVeins, (c, v) -> c.followVeins = v);
 		addBool(set, "backfill_ores", c -> c.backfillOres, (c, v) -> c.backfillOres = v);
 		addBool(set, "smooth_movement", c -> c.smoothMovement, (c, v) -> c.smoothMovement = v);
 		addBool(set, "stop_on_health_loss", c -> c.stopOnHealthLoss, (c, v) -> c.stopOnHealthLoss = v);
 		addInt(set, "max_safe_drop", 1, ModConfig.MAX_SAFE_DROP_LIMIT, ModConfig::safeDrop, (c, v) -> c.maxSafeDrop = v);
 		addInt(set, "min_tool_durability", 0, 1000, ModConfig::minToolDurability, (c, v) -> c.minToolDurability = v);
+		addInt(set, "forward_length", 1, ModConfig.MAX_FORWARD_LENGTH_LIMIT, ModConfig::forwardLength, (c, v) -> c.forwardLength = v);
 		addInt(set, "branch_length", 1, ModConfig.MAX_BRANCH_LENGTH_LIMIT, ModConfig::branchLength, (c, v) -> c.branchLength = v);
 		addInt(set, "lava_lookahead", 1, ModConfig.MAX_LAVA_LOOKAHEAD_LIMIT, ModConfig::lavaLookahead, (c, v) -> c.lavaLookahead = v);
 

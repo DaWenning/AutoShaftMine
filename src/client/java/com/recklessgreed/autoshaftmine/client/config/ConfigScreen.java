@@ -29,12 +29,18 @@ public class ConfigScreen extends Screen {
 		this.slot = 0;
 
 		addToggle("config.autoshaftmine.advanced_mode", () -> config.advancedMode, v -> config.advancedMode = v);
+		addCycle(forwardLabel(config.forwardLength()), b -> {
+			config.forwardLength = config.forwardLength() % ModConfig.MAX_FORWARD_LENGTH_LIMIT + 1;
+			b.setMessage(forwardLabel(config.forwardLength));
+		});
 		addCycle(branchLabel(config.branchLength()), b -> {
 			config.branchLength = config.branchLength() % ModConfig.MAX_BRANCH_LENGTH_LIMIT + 1;
 			b.setMessage(branchLabel(config.branchLength));
 		});
 		addToggle("config.autoshaftmine.auto_fill_drops", () -> config.autoFillDrops, v -> config.autoFillDrops = v);
 		addToggle("config.autoshaftmine.mine_ores", () -> config.mineOres, v -> config.mineOres = v);
+		addToggle("config.autoshaftmine.mine_ores_below", () -> config.mineOresBelow, v -> config.mineOresBelow = v);
+		addToggle("config.autoshaftmine.follow_veins", () -> config.followVeins, v -> config.followVeins = v);
 		addToggle("config.autoshaftmine.backfill_ores", () -> config.backfillOres, v -> config.backfillOres = v);
 		addCycle(dropLabel(config.safeDrop()), b -> {
 			config.maxSafeDrop = config.safeDrop() % ModConfig.MAX_SAFE_DROP_LIMIT + 1;
@@ -91,6 +97,10 @@ public class ConfigScreen extends Screen {
 
 	private static Component durabilityLabel(int value) {
 		return Component.translatable("config.autoshaftmine.min_tool_durability", value);
+	}
+
+	private static Component forwardLabel(int value) {
+		return Component.translatable("config.autoshaftmine.forward_length", value);
 	}
 
 	private static Component branchLabel(int value) {

@@ -13,7 +13,8 @@ public enum StopReason {
 	TOOL_BREAKING("tool_breaking"),
 	UNBREAKABLE("unbreakable"),
 	SCREEN_OPENED("screen_opened"),
-	WORLD_LEFT("world_left");
+	WORLD_LEFT("world_left"),
+	STUCK("stuck");
 
 	private final String key;
 
