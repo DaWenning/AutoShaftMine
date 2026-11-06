@@ -3,6 +3,8 @@ package com.recklessgreed.autoshaftmine.client;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.recklessgreed.autoshaftmine.AutoShaftMine;
 
+import com.recklessgreed.autoshaftmine.client.config.ConfigCommand;
+
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
@@ -15,6 +17,8 @@ public class AutoShaftMineClient implements ClientModInitializer {
 
 	@Override
 	public void onInitializeClient() {
+		ConfigCommand.register();
+
 		KeyMapping toggleKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
 				"key.autoshaftmine.toggle", InputConstants.Type.KEYBOARD, InputConstants.KEY_G, CATEGORY));
 

@@ -12,12 +12,17 @@
 	"message.autoshaftmine.stopped.unbreakable": "Stopped: unbreakable block ahead",
 	"message.autoshaftmine.stopped.screen_opened": "Stopped: a screen was opened",
 	"message.autoshaftmine.stopped.world_left": "Stopped: left the world",
+	"command.autoshaftmine.list": "AutoShaftMine settings (change with /autoshaftmine set <option> <value>):",
+	"command.autoshaftmine.set": "%s set to %s",
+	"command.autoshaftmine.reset": "AutoShaftMine settings reset to defaults",
+	"config.autoshaftmine.branch_length": "Branch length: %s",
 	"config.autoshaftmine.title": "AutoShaftMine Settings",
-	"config.autoshaftmine.auto_fill_drops": "Auto-place blocks on drops: %s",
+	"config.autoshaftmine.advanced_mode": "Advanced mode: %s",
+	"config.autoshaftmine.auto_fill_drops": "Fill drops: %s",
 	"config.autoshaftmine.mine_ores": "Mine ores: %s",
 	"config.autoshaftmine.backfill_ores": "Refill ore holes: %s",
-	"config.autoshaftmine.max_safe_drop": "Max. safe drop: %s blocks",
+	"config.autoshaftmine.max_safe_drop": "Max. safe drop: %s",
 	"config.autoshaftmine.stop_on_health_loss": "Stop on damage: %s",
-	"config.autoshaftmine.min_tool_durability": "Stop at tool durability: %s",
-	"config.autoshaftmine.lava_lookahead": "Lava lookahead: %s blocks"
+	"config.autoshaftmine.min_tool_durability": "Min. durability: %s",
+	"config.autoshaftmine.lava_lookahead": "Lava lookahead: %s"
 }

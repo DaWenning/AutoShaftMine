@@ -2,6 +2,7 @@ package com.recklessgreed.autoshaftmine.client;
 
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -40,7 +41,37 @@ public final class ShaftMiner {
 	/** Squared distance up to which blocks are mined and placed without moving. */
 	private static final double MAX_REACH_SQ = 4.0 * 4.0;
 
+	/** Direction of a pattern segment relative to the direction the run was started in. */
+	private enum Turn { FORWARD, LEFT, RIGHT }
+
+	/** @param length number of blocks, or {@link #BRANCH} for the configured branch length */
+	private record Segment(Turn turn, int length) {
+		static final int BRANCH = 0;
+	}
+
+	/**
+	 * Advanced mode: two blocks forward, a branch to the left and back, then a branch to the right and
+	 * back, repeated. The branch length comes from {@link ModConfig#branchLength()}. Walking back re-uses the already mined tunnel.
+	 */
+	private static final List<Segment> PATTERN = List.of(
+			new Segment(Turn.FORWARD, 2),
+			new Segment(Turn.LEFT, Segment.BRANCH),
+			new Segment(Turn.RIGHT, Segment.BRANCH),
+			new Segment(Turn.RIGHT, Segment.BRANCH),
+			new Segment(Turn.LEFT, Segment.BRANCH));
+
+	/** Distance to the block middle (in blocks) below which the player is snapped onto it. */
+	private static final double CENTER_TOLERANCE = 0.1;
+
 	private boolean active;
+	private boolean advanced;
+	private Direction mainDirection = Direction.NORTH;
+	private int segmentIndex;
+	/** Branch length of the current run, read from the config when the run starts. */
+	private int branchLength;
+	private BlockPos segmentStart;
+	/** Tunnel cells the player has been in; they are never refilled, so the way back stays open. */
+	private final Set<BlockPos> tunnelCells = new HashSet<>();
 	private int fillAttempts;
 	/** Ore block that is currently being mined. */
 	private BlockPos oreTarget;
@@ -67,7 +98,17 @@ public final class ShaftMiner {
 		if (player == null || mc.gameMode == null || mc.gui.screen() != null) {
 			return;
 		}
-		direction = player.getDirection();
+		mainDirection = player.getDirection();
+		direction = mainDirection;
+		advanced = ModConfig.get().advancedMode;
+		branchLength = ModConfig.get().branchLength();
+		segmentIndex = 0;
+		segmentStart = player.blockPosition();
+		if (advanced) {
+			// Start exactly in the middle of the block so every branch is centred as well.
+			player.setPos(segmentStart.getX() + 0.5, player.getY(), segmentStart.getZ() + 0.5);
+		}
+		tunnelCells.clear();
 		fillAttempts = 0;
 		oreTarget = null;
 		holes.clear();
@@ -119,6 +160,12 @@ public final class ShaftMiner {
 		}
 
 		BlockPos feet = player.blockPosition();
+		boolean centering = false;
+		if (advanced) {
+			tunnelCells.add(feet);
+			tunnelCells.add(feet.above());
+			centering = updateSegment(player, feet);
+		}
 		Optional<StopReason> hazard = HazardScanner.scan(mc.level, feet, direction);
 		if (hazard.isPresent()) {
 			if (hazard.get() == StopReason.DROP && ModConfig.get().autoFillDrops && fillAttempts < MAX_FILL_ATTEMPTS
@@ -138,6 +185,12 @@ public final class ShaftMiner {
 		}
 
 		player.setYRot(direction.toYRot());
+
+		if (centering) {
+			// Segment length reached: walk to the middle of the block so the turn happens in the tunnel line.
+			mc.options.keyUp.setDown(true);
+			return;
+		}
 
 		BlockPos ahead = feet.relative(direction);
 		// Head level first so gravel or sand above cannot pile into the tunnel unnoticed.
@@ -162,6 +215,38 @@ public final class ShaftMiner {
 		mc.options.keyUp.setDown(false);
 		mc.gameMode.continueDestroyBlock(target, direction.getOpposite());
 		player.swing(InteractionHand.MAIN_HAND, player.getMainHandItem().getAttackAnimation(), true);
+	}
+
+	/**
+	 * Switches to the next pattern segment once the current one is done.
+	 *
+	 * @return true while the player has reached the end block of the segment but is not yet past its middle
+	 */
+	private boolean updateSegment(LocalPlayer player, BlockPos feet) {
+		Segment segment = PATTERN.get(segmentIndex);
+		int length = segment.length() == Segment.BRANCH ? branchLength : segment.length();
+		int dx = direction.getStepX();
+		int dz = direction.getStepZ();
+		int travelled = (feet.getX() - segmentStart.getX()) * dx + (feet.getZ() - segmentStart.getZ()) * dz;
+		if (travelled < length) {
+			return false;
+		}
+		double offset = (player.getX() - (feet.getX() + 0.5)) * dx + (player.getZ() - (feet.getZ() + 0.5)) * dz;
+		if (travelled == length && offset < -CENTER_TOLERANCE) {
+			return true;
+		}
+		// Snap onto the block middle and drop the horizontal momentum. Without that the player slides on
+		// into the side opening after the turn and then hits the wall of the next segment.
+		player.setPos(feet.getX() + 0.5, player.getY(), feet.getZ() + 0.5);
+		player.setDeltaMovement(0, player.getDeltaMovement().y, 0);
+		segmentIndex = (segmentIndex + 1) % PATTERN.size();
+		segmentStart = feet;
+		direction = switch (PATTERN.get(segmentIndex).turn()) {
+			case FORWARD -> mainDirection;
+			case LEFT -> mainDirection.getCounterClockWise();
+			case RIGHT -> mainDirection.getClockWise();
+		};
+		return false;
 	}
 
 	/**
@@ -316,7 +401,8 @@ public final class ShaftMiner {
 	/** The shaft is the 1x2 column in the tunnel line at feet and head height. */
 	private boolean isShaftCell(BlockPos pos, BlockPos feet) {
 		boolean inLine = direction.getAxis() == Direction.Axis.X ? pos.getZ() == feet.getZ() : pos.getX() == feet.getX();
-		return inLine && (pos.getY() == feet.getY() || pos.getY() == feet.getY() + 1);
+		return tunnelCells.contains(pos)
+				|| inLine && (pos.getY() == feet.getY() || pos.getY() == feet.getY() + 1);
 	}
 
 	/** Explicit list, because the c:ores tag is missing when the server does not provide it. */

@@ -45,7 +45,7 @@ Resources: `src/client/resources/assets/autoshaftmine/lang/{en_us,de_de}.json` (
 Package `com.recklessgreed.autoshaftmine.client.config`:
 
 - `ModMenuIntegration` implements `ModMenuApi`; `getModConfigScreenFactory()` returns `ConfigScreen::new`. Registered in `fabric.mod.json` under entrypoint key `"modmenu"`. The mod works without ModMenu installed (the entrypoint is only loaded by ModMenu).
-- `ConfigScreen` – plain vanilla `Screen` (no Cloth Config / YACL dependency). Seven buttons in a column (24px spacing; the Done button sits at `y+180`, which may fall off-screen at very small GUI heights), centered, starting at `height / 4`, each 200x20, plus a Done button. Boolean options are click-to-toggle buttons labelled via `Component.translatable(key, OPTION_ON/OFF)`; the drop button cycles 1..10 and wraps. `onClose()` calls `ModConfig.get().save()` and returns to the parent screen (`minecraft.setScreenAndShow(parent)`). Settings are saved only on close, not on every click.
+- `ConfigScreen` – plain vanilla `Screen` (no Cloth Config / YACL dependency). Two columns of 150px (10px gap, 24px rows, starting at `height / 6`), filled row by row via `addCell`; Done is centred below the grid. Labels are kept short to fit 150px. Boolean options are click-to-toggle buttons labelled via `Component.translatable(key, OPTION_ON/OFF)`; the drop button cycles 1..10 and wraps. `onClose()` calls `ModConfig.get().save()` and returns to the parent screen (`minecraft.setScreenAndShow(parent)`). Settings are saved only on close, not on every click.
 - `ModConfig` – Gson POJO (pretty-printed), lazily loaded singleton via `ModConfig.get()`, stored at `<fabric config dir>/autoshaftmine.json`. Broken/unreadable file → silently falls back to defaults; write errors are swallowed.
 
 | Field | Default | Effect | Read in |
@@ -54,11 +54,15 @@ Package `com.recklessgreed.autoshaftmine.client.config`:
 | `mineOres` | `true` | Ore-vein mining; when off, `oreTarget` is nulled and `holes` cleared | `ShaftMiner.handleOres` |
 | `backfillOres` | `true` | Refill mined-out ore cells | `ShaftMiner.handleOres` |
 | `maxSafeDrop` | **`1`** | Empty blocks below the next floor tile still treated as safe; read through `safeDrop()` which clamps to 1..`MAX_SAFE_DROP_LIMIT` (10) to survive hand-edited files | `HazardScanner.isDangerousDrop` |
+| `advancedMode` | `true` | Branch pattern, see §4a (read once at run start) | `ShaftMiner.start` |
+| `branchLength` | `3` | Length of each side branch (and its return), 1-7; `branchLength()` clamps; read once at run start | `ShaftMiner.start/updateSegment` |
 | `stopOnHealthLoss` | `true` | Stop with `HEALTH_LOST` when health drops | `ShaftMiner.tick` |
 | `minToolDurability` | `2` | Stop (`TOOL_BREAKING`) at this many remaining uses; screen cycles 2/5/10/25/50/100 (`DURABILITY_STEPS`) | `ShaftMiner.isToolAlmostBroken` |
 | `lavaLookahead` | `2` | Blocks ahead scanned for lava; `lavaLookahead()` clamps to 1..5 | `HazardScanner.hasLavaNearby` |
 
-Lang keys (both `en_us` and `de_de`, keep in sync): `config.autoshaftmine.title`, `.auto_fill_drops`, `.mine_ores`, `.backfill_ores`, `.max_safe_drop`, `.stop_on_health_loss`, `.min_tool_durability`, `.lava_lookahead` (the toggles take `%s` for On/Off, the drop label takes the number).
+Lang keys (both `en_us` and `de_de`, keep in sync): `config.autoshaftmine.title`, `.auto_fill_drops`, `.mine_ores`, `.backfill_ores`, `.advanced_mode`, `.branch_length`, `.max_safe_drop`, `.stop_on_health_loss`, `.min_tool_durability`, `.lava_lookahead` (the toggles take `%s` for On/Off, the drop label takes the number).
+
+Client commands (`ConfigCommand`, registered in `AutoShaftMineClient.onInitializeClient` via Fabric `ClientCommandRegistrationCallback`; works without ModMenu): `/autoshaftmine` or `/autoshaftmine list` shows all values, `/autoshaftmine set <option> <value>` changes one and saves immediately, `/autoshaftmine reset` restores defaults; `/asm` is an alias. Options: `advanced_mode`, `auto_fill_drops`, `mine_ores`, `backfill_ores`, `stop_on_health_loss` (true/false) and `max_safe_drop` 1-10, `min_tool_durability` 0-1000, `lava_lookahead` 1-5, `branch_length` 1-7. New settings must be added to `ConfigCommand.build()` (and `ModConfig.resetToDefaults()`) as well as the screen. Command feedback keys: `command.autoshaftmine.{list,set,reset}`.
 
 Build/dependency caveats:
 - ModMenu is **compile-only** because no released ModMenu supports Minecraft 26.3 yet (comment in `build.gradle`). Consequence: `runClient` does **not** have ModMenu, so the config screen cannot be opened there. Once a compatible ModMenu exists, add `localRuntime "com.terraformersmc:modmenu:<version>"`. Until then edit `config/autoshaftmine.json` by hand to test settings, or temporarily open `ConfigScreen` from a debug hook.
@@ -87,6 +91,16 @@ Related behavior changes in the same commit (not ModMenu, but easy to miss):
 
 Design notes: only the main-hand tool is used; no tool switching, no inventory management, no pathing/vertical digging; direction is horizontal and fixed per run.
 
+## 4a. Advanced mode (`ModConfig.advancedMode`)
+
+Pattern `PATTERN` in `ShaftMiner` (relative to the facing at start), repeated forever: **2 forward → N left → N back to the right → N right → N back to the left** (N = `branchLength`, default 3, `Segment.BRANCH` placeholder in `PATTERN`). Interpretation of the owner's request ("2 forward, 3 left, 3 right") as classic branch mining with return to the main line; change the `PATTERN` list if a different shape was meant (e.g. left 3, then right 6).
+
+How it works: `direction` is now the *current segment's* direction (`mainDirection` stays fixed). `updateSegment` counts blocks travelled along the segment axis from `segmentStart`; at the end block the player keeps walking until past the block centre (`centering`, skips mining) and then the next segment starts with the new `direction`. Return segments walk through the already mined tunnel (hazard scan and ore handling still run). `tunnelCells` collects every visited feet/head cell and `isShaftCell` treats them as shaft, so backfill never closes the way back.
+
+Centering: walking alone overshoots the block middle, so the player ended up off-centre after returning into the main line. Now the player is placed on the block middle at run start, and at every segment end the along-axis coordinate is snapped to the block centre (`player.setPos`, `CENTER_TOLERANCE` = 0.1) before the turn; this keeps the lateral position of the next segment centred. The snap now sets both horizontal coordinates to the block middle **and zeroes the horizontal velocity**: leftover momentum made the player slide ~0.2 blocks into the side opening after the turn (left return → forward) and then bump into the wall of the 1-wide corridor.
+
+**Untested in-game** – check corner turns (player lateral offset vs. 1-wide corridor), branches with gravel, and ore backfill near branch junctions.
+
 ## 5. History of work (git)
 
 1. `76214f4` **Initial commit: AutoShaftMine Fabric mod** – generated from the Fabric template, then the core feature: toggle key, `ShaftMiner` tunnelling, `HazardScanner` (lava, fluids, damaging blocks, drops), `StopReason`, de/en translations, durability + health + screen/world-left safety stops, drop filling with a hotbar filler block.
@@ -94,6 +108,8 @@ Design notes: only the main-hand tool is used; no tool switching, no inventory m
 
 Manual testing so far (from `run/` logs and command history, not automated): a creative-flat/“New World” test world, switched to Survival, `/effect give <player> haste infinite 3|10 true` to speed up digging and `night_vision` for visibility. The game ran and stopped cleanly; **no automated tests exist**, and I have no record of the ore/backfill behavior being confirmed in detail in-game – verify it before building on it.
 3. `03cbd16` **Many Changes after testing in Prod** (authored by recklessGreed) – ModMenu integration + `ModConfig`/`ConfigScreen` (§3a), explicit ore list, chat screen no longer interrupts, Fabric Loader lowered to 0.19.5. Net +184/-11 lines across 10 files.
+4. `6bef8ef` Damage stop, tool durability and lava lookahead settings.
+5. *(uncommitted at time of writing)* Advanced mode (§4a).
 
 ## 6. Conventions (from the owner's global rules)
 

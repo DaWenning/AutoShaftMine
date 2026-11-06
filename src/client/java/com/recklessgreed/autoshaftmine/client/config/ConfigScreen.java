@@ -10,7 +10,13 @@ import net.minecraft.network.chat.Component;
 
 /** Simple vanilla settings screen, opened from ModMenu. */
 public class ConfigScreen extends Screen {
+	private static final int COLUMN_WIDTH = 150;
+	private static final int COLUMN_GAP = 10;
+	private static final int ROW_HEIGHT = 24;
+
 	private final Screen parent;
+	/** Next free grid cell while the buttons are laid out. */
+	private int slot;
 
 	public ConfigScreen(Screen parent) {
 		super(Component.translatable("config.autoshaftmine.title"));
@@ -20,40 +26,58 @@ public class ConfigScreen extends Screen {
 	@Override
 	protected void init() {
 		ModConfig config = ModConfig.get();
-		int x = this.width / 2 - 100;
-		int y = this.height / 4;
+		this.slot = 0;
 
-		addToggle(x, y, "config.autoshaftmine.auto_fill_drops", () -> config.autoFillDrops, v -> config.autoFillDrops = v);
-		addToggle(x, y + 24, "config.autoshaftmine.mine_ores", () -> config.mineOres, v -> config.mineOres = v);
-		addToggle(x, y + 48, "config.autoshaftmine.backfill_ores", () -> config.backfillOres, v -> config.backfillOres = v);
-
-		addRenderableWidget(Button.builder(dropLabel(config.safeDrop()), b -> {
+		addToggle("config.autoshaftmine.advanced_mode", () -> config.advancedMode, v -> config.advancedMode = v);
+		addCycle(branchLabel(config.branchLength()), b -> {
+			config.branchLength = config.branchLength() % ModConfig.MAX_BRANCH_LENGTH_LIMIT + 1;
+			b.setMessage(branchLabel(config.branchLength));
+		});
+		addToggle("config.autoshaftmine.auto_fill_drops", () -> config.autoFillDrops, v -> config.autoFillDrops = v);
+		addToggle("config.autoshaftmine.mine_ores", () -> config.mineOres, v -> config.mineOres = v);
+		addToggle("config.autoshaftmine.backfill_ores", () -> config.backfillOres, v -> config.backfillOres = v);
+		addCycle(dropLabel(config.safeDrop()), b -> {
 			config.maxSafeDrop = config.safeDrop() % ModConfig.MAX_SAFE_DROP_LIMIT + 1;
 			b.setMessage(dropLabel(config.maxSafeDrop));
-		}).bounds(x, y + 72, 200, 20).build());
-
-		addToggle(x, y + 96, "config.autoshaftmine.stop_on_health_loss", () -> config.stopOnHealthLoss, v -> config.stopOnHealthLoss = v);
-
-		addRenderableWidget(Button.builder(durabilityLabel(config.minToolDurability()), b -> {
+		});
+		addToggle("config.autoshaftmine.stop_on_health_loss", () -> config.stopOnHealthLoss, v -> config.stopOnHealthLoss = v);
+		addCycle(durabilityLabel(config.minToolDurability()), b -> {
 			config.minToolDurability = nextDurability(config.minToolDurability());
 			b.setMessage(durabilityLabel(config.minToolDurability));
-		}).bounds(x, y + 120, 200, 20).build());
-
-		addRenderableWidget(Button.builder(lavaLabel(config.lavaLookahead()), b -> {
+		});
+		addCycle(lavaLabel(config.lavaLookahead()), b -> {
 			config.lavaLookahead = config.lavaLookahead() % ModConfig.MAX_LAVA_LOOKAHEAD_LIMIT + 1;
 			b.setMessage(lavaLabel(config.lavaLookahead));
-		}).bounds(x, y + 144, 200, 20).build());
+		});
 
+		int doneRow = (this.slot + 1) / 2;
 		addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, b -> onClose())
-				.bounds(x, y + 180, 200, 20).build());
+				.bounds(this.width / 2 - 100, top() + doneRow * ROW_HEIGHT + 6, 200, 20).build());
 	}
 
-	private void addToggle(int x, int y, String key, Supplier<Boolean> getter, Consumer<Boolean> setter) {
-		addRenderableWidget(Button.builder(label(key, getter.get()), b -> {
+	private int top() {
+		return this.height / 6;
+	}
+
+	/** Adds a button into the next free grid cell (two columns, filled row by row). */
+	private void addCell(Button.Builder builder) {
+		int column = this.slot % 2;
+		int row = this.slot / 2;
+		int x = this.width / 2 - COLUMN_WIDTH - COLUMN_GAP / 2 + column * (COLUMN_WIDTH + COLUMN_GAP);
+		addRenderableWidget(builder.bounds(x, top() + row * ROW_HEIGHT, COLUMN_WIDTH, 20).build());
+		this.slot++;
+	}
+
+	private void addCycle(Component initial, Button.OnPress onPress) {
+		addCell(Button.builder(initial, onPress));
+	}
+
+	private void addToggle(String key, Supplier<Boolean> getter, Consumer<Boolean> setter) {
+		addCell(Button.builder(label(key, getter.get()), b -> {
 			boolean value = !getter.get();
 			setter.accept(value);
 			b.setMessage(label(key, value));
-		}).bounds(x, y, 200, 20).build());
+		}));
 	}
 
 	private static Component label(String key, boolean value) {
@@ -66,6 +90,10 @@ public class ConfigScreen extends Screen {
 
 	private static Component durabilityLabel(int value) {
 		return Component.translatable("config.autoshaftmine.min_tool_durability", value);
+	}
+
+	private static Component branchLabel(int value) {
+		return Component.translatable("config.autoshaftmine.branch_length", value);
 	}
 
 	private static Component lavaLabel(int value) {

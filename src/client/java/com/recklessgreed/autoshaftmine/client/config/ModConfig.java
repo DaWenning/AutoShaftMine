@@ -24,6 +24,10 @@ public final class ModConfig {
 	/** Number of empty blocks below the next floor tile that still counts as safe (1-10). */
 	public int maxSafeDrop = 1;
 
+	/** Dig side branches (2 forward, 3 left and back, 3 right and back) instead of one straight shaft. */
+	public boolean advancedMode = true;
+	/** Length of the side branches in advanced mode (1-7). */
+	public int branchLength = 3;
 	/** Stop as soon as the player loses health. */
 	public boolean stopOnHealthLoss = true;
 	/** Stop when the tool has this many uses (or fewer) left. */
@@ -33,6 +37,7 @@ public final class ModConfig {
 
 	public static final int MAX_SAFE_DROP_LIMIT = 10;
 	public static final int MAX_LAVA_LOOKAHEAD_LIMIT = 5;
+	public static final int MAX_BRANCH_LENGTH_LIMIT = 7;
 	/** Selectable durability thresholds, the settings screen cycles through them. */
 	public static final int[] DURABILITY_STEPS = {2, 5, 10, 25, 50, 100};
 
@@ -44,6 +49,11 @@ public final class ModConfig {
 	/** Clamped value, protects against hand-edited config files. */
 	public int lavaLookahead() {
 		return Math.max(1, Math.min(MAX_LAVA_LOOKAHEAD_LIMIT, lavaLookahead));
+	}
+
+	/** Clamped value, protects against hand-edited config files. */
+	public int branchLength() {
+		return Math.max(1, Math.min(MAX_BRANCH_LENGTH_LIMIT, branchLength));
 	}
 
 	/** Never negative, protects against hand-edited config files. */
@@ -70,6 +80,20 @@ public final class ModConfig {
 			}
 		}
 		return new ModConfig();
+	}
+
+	/** Restores every setting to its default value. */
+	public void resetToDefaults() {
+		ModConfig defaults = new ModConfig();
+		advancedMode = defaults.advancedMode;
+		autoFillDrops = defaults.autoFillDrops;
+		mineOres = defaults.mineOres;
+		backfillOres = defaults.backfillOres;
+		maxSafeDrop = defaults.maxSafeDrop;
+		stopOnHealthLoss = defaults.stopOnHealthLoss;
+		minToolDurability = defaults.minToolDurability;
+		lavaLookahead = defaults.lavaLookahead;
+		branchLength = defaults.branchLength;
 	}
 
 	public void save() {

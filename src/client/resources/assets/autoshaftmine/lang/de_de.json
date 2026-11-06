@@ -12,12 +12,17 @@
 	"message.autoshaftmine.stopped.unbreakable": "Gestoppt: unzerstörbarer Block voraus",
 	"message.autoshaftmine.stopped.screen_opened": "Gestoppt: ein Menü wurde geöffnet",
 	"message.autoshaftmine.stopped.world_left": "Gestoppt: Welt verlassen",
+	"command.autoshaftmine.list": "AutoShaftMine-Einstellungen (ändern mit /autoshaftmine set <Option> <Wert>):",
+	"command.autoshaftmine.set": "%s auf %s gesetzt",
+	"command.autoshaftmine.reset": "AutoShaftMine-Einstellungen auf Standard zurückgesetzt",
+	"config.autoshaftmine.branch_length": "Abzweiglänge: %s",
 	"config.autoshaftmine.title": "AutoShaftMine-Einstellungen",
-	"config.autoshaftmine.auto_fill_drops": "Blöcke an Abgründen setzen: %s",
+	"config.autoshaftmine.advanced_mode": "Erweiterter Modus: %s",
+	"config.autoshaftmine.auto_fill_drops": "Abgründe füllen: %s",
 	"config.autoshaftmine.mine_ores": "Erze abbauen: %s",
-	"config.autoshaftmine.backfill_ores": "Erzlöcher auffüllen: %s",
-	"config.autoshaftmine.max_safe_drop": "Max. sichere Fallhöhe: %s Blöcke",
-	"config.autoshaftmine.stop_on_health_loss": "Bei Schaden stoppen: %s",
-	"config.autoshaftmine.min_tool_durability": "Stopp bei Werkzeug-Haltbarkeit: %s",
-	"config.autoshaftmine.lava_lookahead": "Lava-Vorausschau: %s Blöcke"
+	"config.autoshaftmine.backfill_ores": "Erzlöcher füllen: %s",
+	"config.autoshaftmine.max_safe_drop": "Max. Fallhöhe: %s",
+	"config.autoshaftmine.stop_on_health_loss": "Stopp bei Schaden: %s",
+	"config.autoshaftmine.min_tool_durability": "Min. Haltbarkeit: %s",
+	"config.autoshaftmine.lava_lookahead": "Lava-Vorausschau: %s"
 }
