@@ -16,6 +16,7 @@
 	"command.autoshaftmine.set": "%s set to %s",
 	"command.autoshaftmine.reset": "AutoShaftMine settings reset to defaults",
 	"config.autoshaftmine.branch_length": "Branch length: %s",
+	"config.autoshaftmine.smooth_movement": "Smooth movement: %s",
 	"config.autoshaftmine.title": "AutoShaftMine Settings",
 	"config.autoshaftmine.advanced_mode": "Advanced mode: %s",
 	"config.autoshaftmine.auto_fill_drops": "Fill drops: %s",

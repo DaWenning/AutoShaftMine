@@ -63,6 +63,9 @@ public final class ShaftMiner {
 	/** Distance to the block middle (in blocks) below which the player is snapped onto it. */
 	private static final double CENTER_TOLERANCE = 0.1;
 
+	private final LookController look = new LookController();
+	/** Centre of the ore block that is being mined this tick, so the camera can follow it. */
+	private Vec3 mineFocus;
 	private boolean active;
 	private boolean advanced;
 	private Direction mainDirection = Direction.NORTH;
@@ -109,6 +112,7 @@ public final class ShaftMiner {
 			player.setPos(segmentStart.getX() + 0.5, player.getY(), segmentStart.getZ() + 0.5);
 		}
 		tunnelCells.clear();
+		look.reset();
 		fillAttempts = 0;
 		oreTarget = null;
 		holes.clear();
@@ -179,16 +183,10 @@ public final class ShaftMiner {
 		}
 		fillAttempts = 0;
 
+		mineFocus = null;
 		if (handleOres(mc, player, feet)) {
 			mc.options.keyUp.setDown(false);
-			return;
-		}
-
-		player.setYRot(direction.toYRot());
-
-		if (centering) {
-			// Segment length reached: walk to the middle of the block so the turn happens in the tunnel line.
-			mc.options.keyUp.setDown(true);
+			look.aim(player, direction, mineFocus);
 			return;
 		}
 
@@ -199,6 +197,19 @@ public final class ShaftMiner {
 			target = ahead.above();
 		} else if (!mc.level.getBlockState(ahead).isAir()) {
 			target = ahead;
+		}
+
+		// Turn towards the direction first and look at the block that is about to be mined.
+		boolean aligned = look.aim(player, direction, target == null ? null : Vec3.atCenterOf(target));
+		if (!aligned || look.isPausing(player, target)) {
+			mc.options.keyUp.setDown(false);
+			return;
+		}
+
+		if (centering) {
+			// Segment length reached: walk to the middle of the block so the turn happens in the tunnel line.
+			mc.options.keyUp.setDown(true);
+			return;
 		}
 
 		if (target == null) {
@@ -422,6 +433,7 @@ public final class ShaftMiner {
 	}
 
 	private void mineBlock(Minecraft mc, LocalPlayer player, BlockPos pos) {
+		mineFocus = Vec3.atCenterOf(pos);
 		mc.gameMode.continueDestroyBlock(pos, direction.getOpposite());
 		player.swing(InteractionHand.MAIN_HAND, player.getMainHandItem().getAttackAnimation(), true);
 	}

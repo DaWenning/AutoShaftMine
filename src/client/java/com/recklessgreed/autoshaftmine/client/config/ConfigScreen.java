@@ -40,6 +40,7 @@ public class ConfigScreen extends Screen {
 			config.maxSafeDrop = config.safeDrop() % ModConfig.MAX_SAFE_DROP_LIMIT + 1;
 			b.setMessage(dropLabel(config.maxSafeDrop));
 		});
+		addToggle("config.autoshaftmine.smooth_movement", () -> config.smoothMovement, v -> config.smoothMovement = v);
 		addToggle("config.autoshaftmine.stop_on_health_loss", () -> config.stopOnHealthLoss, v -> config.stopOnHealthLoss = v);
 		addCycle(durabilityLabel(config.minToolDurability()), b -> {
 			config.minToolDurability = nextDurability(config.minToolDurability());

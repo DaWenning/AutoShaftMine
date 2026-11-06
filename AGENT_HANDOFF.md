@@ -34,6 +34,7 @@ Because MC 26.x APIs differ from older versions you may know (e.g. `player.sendO
 - `AutoShaftMineClient` – client entrypoint. Registers the toggle `KeyMapping` (G, category `autoshaftmine:main`) and an `END_CLIENT_TICK` handler: consumes key clicks → `miner.toggle`, stops with `WORLD_LEFT` if the player vanished, then `miner.tick`.
 - `ShaftMiner` – the state machine (see §4).
 - `HazardScanner` – stateless look-ahead returning `Optional<StopReason>`.
+- `LookController` – humanlike camera used by `ShaftMiner.tick` (setting `smoothMovement`): yaw eased per tick (max 22 deg, factor 0.4), pitch follows the centre of the block being mined (ores via `mineFocus`) or an idle drift, small sinus/random offsets re-rolled per new target, 0-3 tick reaction pause when the target block changes. Walking/mining waits until the yaw is within 6 deg of the segment direction, so turns are visible instead of instant. Untested in-game; tune the constants at the top of the class.
 - `StopReason` – enum; each value maps to translation key `message.autoshaftmine.stopped.<key>`.
 - `config/` – settings + ModMenu integration (see §3a).
 - `mixin/ExampleClientMixin`, `main/.../mixin/ExampleMixin` – leftover template mixins (empty); mixin configs `autoshaftmine(.client).mixins.json`. Can be removed if unused.
@@ -55,14 +56,15 @@ Package `com.recklessgreed.autoshaftmine.client.config`:
 | `backfillOres` | `true` | Refill mined-out ore cells | `ShaftMiner.handleOres` |
 | `maxSafeDrop` | **`1`** | Empty blocks below the next floor tile still treated as safe; read through `safeDrop()` which clamps to 1..`MAX_SAFE_DROP_LIMIT` (10) to survive hand-edited files | `HazardScanner.isDangerousDrop` |
 | `advancedMode` | `true` | Branch pattern, see §4a (read once at run start) | `ShaftMiner.start` |
+| `smoothMovement` | `true` | Humanlike camera (see `LookController`), `false` = old instant yaw snap | `LookController` |
 | `branchLength` | `3` | Length of each side branch (and its return), 1-7; `branchLength()` clamps; read once at run start | `ShaftMiner.start/updateSegment` |
 | `stopOnHealthLoss` | `true` | Stop with `HEALTH_LOST` when health drops | `ShaftMiner.tick` |
 | `minToolDurability` | `2` | Stop (`TOOL_BREAKING`) at this many remaining uses; screen cycles 2/5/10/25/50/100 (`DURABILITY_STEPS`) | `ShaftMiner.isToolAlmostBroken` |
 | `lavaLookahead` | `2` | Blocks ahead scanned for lava; `lavaLookahead()` clamps to 1..5 | `HazardScanner.hasLavaNearby` |
 
-Lang keys (both `en_us` and `de_de`, keep in sync): `config.autoshaftmine.title`, `.auto_fill_drops`, `.mine_ores`, `.backfill_ores`, `.advanced_mode`, `.branch_length`, `.max_safe_drop`, `.stop_on_health_loss`, `.min_tool_durability`, `.lava_lookahead` (the toggles take `%s` for On/Off, the drop label takes the number).
+Lang keys (both `en_us` and `de_de`, keep in sync): `config.autoshaftmine.title`, `.auto_fill_drops`, `.mine_ores`, `.backfill_ores`, `.advanced_mode`, `.branch_length`, `.smooth_movement`, `.max_safe_drop`, `.stop_on_health_loss`, `.min_tool_durability`, `.lava_lookahead` (the toggles take `%s` for On/Off, the drop label takes the number).
 
-Client commands (`ConfigCommand`, registered in `AutoShaftMineClient.onInitializeClient` via Fabric `ClientCommandRegistrationCallback`; works without ModMenu): `/autoshaftmine` or `/autoshaftmine list` shows all values, `/autoshaftmine set <option> <value>` changes one and saves immediately, `/autoshaftmine reset` restores defaults; `/asm` is an alias. Options: `advanced_mode`, `auto_fill_drops`, `mine_ores`, `backfill_ores`, `stop_on_health_loss` (true/false) and `max_safe_drop` 1-10, `min_tool_durability` 0-1000, `lava_lookahead` 1-5, `branch_length` 1-7. New settings must be added to `ConfigCommand.build()` (and `ModConfig.resetToDefaults()`) as well as the screen. Command feedback keys: `command.autoshaftmine.{list,set,reset}`.
+Client commands (`ConfigCommand`, registered in `AutoShaftMineClient.onInitializeClient` via Fabric `ClientCommandRegistrationCallback`; works without ModMenu): `/autoshaftmine` or `/autoshaftmine list` shows all values, `/autoshaftmine set <option> <value>` changes one and saves immediately, `/autoshaftmine reset` restores defaults; `/asm` is an alias. Options: `advanced_mode`, `smooth_movement`, `auto_fill_drops`, `mine_ores`, `backfill_ores`, `stop_on_health_loss` (true/false) and `max_safe_drop` 1-10, `min_tool_durability` 0-1000, `lava_lookahead` 1-5, `branch_length` 1-7. New settings must be added to `ConfigCommand.build()` (and `ModConfig.resetToDefaults()`) as well as the screen. Command feedback keys: `command.autoshaftmine.{list,set,reset}`.
 
 Build/dependency caveats:
 - ModMenu is **compile-only** because no released ModMenu supports Minecraft 26.3 yet (comment in `build.gradle`). Consequence: `runClient` does **not** have ModMenu, so the config screen cannot be opened there. Once a compatible ModMenu exists, add `localRuntime "com.terraformersmc:modmenu:<version>"`. Until then edit `config/autoshaftmine.json` by hand to test settings, or temporarily open `ConfigScreen` from a debug hook.

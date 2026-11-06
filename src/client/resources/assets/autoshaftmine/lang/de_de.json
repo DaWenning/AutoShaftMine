@@ -16,6 +16,7 @@
 	"command.autoshaftmine.set": "%s auf %s gesetzt",
 	"command.autoshaftmine.reset": "AutoShaftMine-Einstellungen auf Standard zurückgesetzt",
 	"config.autoshaftmine.branch_length": "Abzweiglänge: %s",
+	"config.autoshaftmine.smooth_movement": "Weiche Bewegung: %s",
 	"config.autoshaftmine.title": "AutoShaftMine-Einstellungen",
 	"config.autoshaftmine.advanced_mode": "Erweiterter Modus: %s",
 	"config.autoshaftmine.auto_fill_drops": "Abgründe füllen: %s",

@@ -26,6 +26,8 @@ public final class ModConfig {
 
 	/** Dig side branches (2 forward, 3 left and back, 3 right and back) instead of one straight shaft. */
 	public boolean advancedMode = true;
+	/** Eased camera turns, pitch that follows the mined block and short reaction pauses. */
+	public boolean smoothMovement = true;
 	/** Length of the side branches in advanced mode (1-7). */
 	public int branchLength = 3;
 	/** Stop as soon as the player loses health. */
@@ -94,6 +96,7 @@ public final class ModConfig {
 		minToolDurability = defaults.minToolDurability;
 		lavaLookahead = defaults.lavaLookahead;
 		branchLength = defaults.branchLength;
+		smoothMovement = defaults.smoothMovement;
 	}
 
 	public void save() {
