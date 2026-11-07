@@ -25,6 +25,10 @@ public final class ModConfig {
 	public boolean followVeins = true;
 	/** Refill the holes left behind by mined ores. */
 	public boolean backfillOres = true;
+	/** Fill every hole below the feet level (in the shaft and beside it) with a building block. */
+	public boolean fillHolesBelow = false;
+	/** Edge length of the cube searched for more ore around the last mined ore: 3, 5 or 7. */
+	public int veinSearchSize = 3;
 	/** Number of empty blocks below the next floor tile that still counts as safe (1-10). */
 	public int maxSafeDrop = 1;
 
@@ -47,6 +51,7 @@ public final class ModConfig {
 	public static final int MAX_LAVA_LOOKAHEAD_LIMIT = 5;
 	public static final int MAX_BRANCH_LENGTH_LIMIT = 7;
 	public static final int MAX_FORWARD_LENGTH_LIMIT = 7;
+	public static final int MAX_VEIN_SEARCH_SIZE = 7;
 	/** Selectable durability thresholds, the settings screen cycles through them. */
 	public static final int[] DURABILITY_STEPS = {2, 5, 10, 25, 50, 100};
 
@@ -68,6 +73,11 @@ public final class ModConfig {
 	/** Clamped value, protects against hand-edited config files. */
 	public int forwardLength() {
 		return Math.max(1, Math.min(MAX_FORWARD_LENGTH_LIMIT, forwardLength));
+	}
+
+	/** Search radius around a mined ore (1-3), derived from the clamped cube size. */
+	public int veinSearchRadius() {
+		return Math.max(1, Math.min(MAX_VEIN_SEARCH_SIZE / 2, veinSearchSize / 2));
 	}
 
 	/** Never negative, protects against hand-edited config files. */
@@ -112,6 +122,8 @@ public final class ModConfig {
 		branchLength = defaults.branchLength;
 		forwardLength = defaults.forwardLength;
 		smoothMovement = defaults.smoothMovement;
+		fillHolesBelow = defaults.fillHolesBelow;
+		veinSearchSize = defaults.veinSearchSize;
 	}
 
 	public void save() {

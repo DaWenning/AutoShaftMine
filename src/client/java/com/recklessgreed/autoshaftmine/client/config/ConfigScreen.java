@@ -42,6 +42,11 @@ public class ConfigScreen extends Screen {
 		addToggle("config.autoshaftmine.mine_ores_below", () -> config.mineOresBelow, v -> config.mineOresBelow = v);
 		addToggle("config.autoshaftmine.follow_veins", () -> config.followVeins, v -> config.followVeins = v);
 		addToggle("config.autoshaftmine.backfill_ores", () -> config.backfillOres, v -> config.backfillOres = v);
+		addToggle("config.autoshaftmine.fill_holes_below", () -> config.fillHolesBelow, v -> config.fillHolesBelow = v);
+		addCycle(veinLabel(config.veinSearchRadius()), b -> {
+			config.veinSearchSize = (config.veinSearchRadius() % 3 + 1) * 2 + 1;
+			b.setMessage(veinLabel(config.veinSearchRadius()));
+		});
 		addCycle(dropLabel(config.safeDrop()), b -> {
 			config.maxSafeDrop = config.safeDrop() % ModConfig.MAX_SAFE_DROP_LIMIT + 1;
 			b.setMessage(dropLabel(config.maxSafeDrop));
@@ -89,6 +94,11 @@ public class ConfigScreen extends Screen {
 
 	private static Component label(String key, boolean value) {
 		return Component.translatable(key, value ? CommonComponents.OPTION_ON : CommonComponents.OPTION_OFF);
+	}
+
+	private static Component veinLabel(int radius) {
+		int size = radius * 2 + 1;
+		return Component.translatable("config.autoshaftmine.vein_search_size", size + "x" + size);
 	}
 
 	private static Component dropLabel(int value) {

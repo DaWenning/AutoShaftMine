@@ -26,6 +26,8 @@
 	"config.autoshaftmine.auto_fill_drops": "Abgründe füllen: %s",
 	"config.autoshaftmine.mine_ores": "Erze abbauen: %s",
 	"config.autoshaftmine.backfill_ores": "Erzlöcher füllen: %s",
+	"config.autoshaftmine.fill_holes_below": "Alle Löcher unter den Füßen füllen: %s",
+	"config.autoshaftmine.vein_search_size": "Adersuche-Bereich: %s",
 	"config.autoshaftmine.max_safe_drop": "Max. Fallhöhe: %s",
 	"config.autoshaftmine.stop_on_health_loss": "Stopp bei Schaden: %s",
 	"config.autoshaftmine.min_tool_durability": "Min. Haltbarkeit: %s",

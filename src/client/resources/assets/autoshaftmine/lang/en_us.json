@@ -26,6 +26,8 @@
 	"config.autoshaftmine.auto_fill_drops": "Fill drops: %s",
 	"config.autoshaftmine.mine_ores": "Mine ores: %s",
 	"config.autoshaftmine.backfill_ores": "Refill ore holes: %s",
+	"config.autoshaftmine.fill_holes_below": "Fill all holes below feet: %s",
+	"config.autoshaftmine.vein_search_size": "Vein search area: %s",
 	"config.autoshaftmine.max_safe_drop": "Max. safe drop: %s",
 	"config.autoshaftmine.stop_on_health_loss": "Stop on damage: %s",
 	"config.autoshaftmine.min_tool_durability": "Min. durability: %s",

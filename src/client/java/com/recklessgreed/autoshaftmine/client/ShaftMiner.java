@@ -221,6 +221,10 @@ public final class ShaftMiner {
 			followPath(mc, player, feet);
 			return;
 		}
+		if (ModConfig.get().fillHolesBelow && fillHoleBelow(mc, player, feet)) {
+			mc.options.keyUp.setDown(false);
+			return;
+		}
 
 		BlockPos ahead = feet.relative(direction);
 		// Head level first so gravel or sand above cannot pile into the tunnel unnoticed.
@@ -382,13 +386,14 @@ public final class ShaftMiner {
 	 */
 	private boolean planExcursion(Minecraft mc, BlockPos feet) {
 		List<Vec3> targets = new ArrayList<>();
+		int radius = ModConfig.get().veinSearchRadius();
 		for (BlockPos hole : holes) {
 			if (ModConfig.get().backfillOres && mc.level.getBlockState(hole).isAir() && !isShaftCell(hole, feet)) {
 				targets.add(Vec3.atCenterOf(hole));
 			}
-			for (int dx = -1; dx <= 1; dx++) {
-				for (int dy = -1; dy <= 1; dy++) {
-					for (int dz = -1; dz <= 1; dz++) {
+			for (int dx = -radius; dx <= radius; dx++) {
+				for (int dy = -radius; dy <= radius; dy++) {
+					for (int dz = -radius; dz <= radius; dz++) {
 						BlockPos pos = hole.offset(dx, dy, dz);
 						if (isMinableOre(mc, pos, feet)) {
 							targets.add(Vec3.atCenterOf(pos));
@@ -560,30 +565,32 @@ public final class ShaftMiner {
 	private BlockPos findOre(Minecraft mc, LocalPlayer player, BlockPos feet) {
 		BlockPos support = feet.below();
 		int minDy = ModConfig.get().mineOresBelow ? -ORE_DEPTH_BELOW : -1;
-		BlockPos best = findOreInCube(mc, player, feet, minDy, 2, support, null);
+		BlockPos best = findOreInCube(mc, player, feet, minDy, 2, 1, support, null);
 		if (isOre(mc.level.getBlockState(support))) {
-			best = findOreInCube(mc, player, support, -1, 1, support, best);
+			best = findOreInCube(mc, player, support, -1, 1, 1, support, best);
 		}
+		int radius = ModConfig.get().veinSearchRadius();
 		for (BlockPos mined : holes) {
-			best = findOreInCube(mc, player, mined, -1, 1, support, best);
+			best = findOreInCube(mc, player, mined, -radius, radius, radius, support, best);
 		}
 		return best;
 	}
 
 	/**
-	 * @param center the middle of the 3-wide cube
+	 * @param center the middle of the cube
 	 * @param minDy  lowest row relative to the center
 	 * @param maxDy  highest row relative to the center
+	 * @param radius horizontal half edge length of the cube
 	 * @param skip   a block that must never be mined (the one carrying the player)
 	 * @param best   the best candidate so far, returned if nothing closer is found
 	 */
-	private BlockPos findOreInCube(Minecraft mc, LocalPlayer player, BlockPos center, int minDy, int maxDy,
+	private BlockPos findOreInCube(Minecraft mc, LocalPlayer player, BlockPos center, int minDy, int maxDy, int radius,
 			BlockPos skip, BlockPos best) {
 		Vec3 eye = player.getEyePosition();
 		double bestDist = best == null ? Double.MAX_VALUE : eye.distanceToSqr(Vec3.atCenterOf(best));
-		for (int dx = -1; dx <= 1; dx++) {
+		for (int dx = -radius; dx <= radius; dx++) {
 			for (int dy = minDy; dy <= maxDy; dy++) {
-				for (int dz = -1; dz <= 1; dz++) {
+				for (int dz = -radius; dz <= radius; dz++) {
 					BlockPos pos = center.offset(dx, dy, dz);
 					if (pos.equals(skip)) {
 						continue;
@@ -720,5 +727,37 @@ public final class ShaftMiner {
 	private static boolean isToolAlmostBroken(ItemStack stack) {
 		return stack.isDamageableItem()
 				&& stack.getMaxDamage() - stack.getDamageValue() <= ModConfig.get().minToolDurability();
+	}
+
+	/**
+	 * Places a building block into one air hole below the feet level, in the 3x3 columns around the player.
+	 *
+	 * @return true if a block was placed
+	 */
+	private boolean fillHoleBelow(Minecraft mc, LocalPlayer player, BlockPos feet) {
+		int slot = findFillerSlot(player);
+		if (slot < 0) {
+			return false;
+		}
+		Vec3 eye = player.getEyePosition();
+		for (int dy = -1; dy >= -3; dy--) {
+			for (int dx = -1; dx <= 1; dx++) {
+				for (int dz = -1; dz <= 1; dz++) {
+					BlockPos hole = feet.offset(dx, dy, dz);
+					if (!mc.level.getBlockState(hole).isAir()
+							|| eye.distanceToSqr(Vec3.atCenterOf(hole)) > MAX_REACH_SQ) {
+						continue;
+					}
+					for (Direction face : Direction.values()) {
+						BlockPos support = hole.relative(face);
+						if (!mc.level.getBlockState(support).getCollisionShape(mc.level, support).isEmpty()
+								&& placeAgainst(mc, player, support, face.getOpposite(), slot)) {
+							return true;
+						}
+					}
+				}
+			}
+		}
+		return false;
 	}
 }
